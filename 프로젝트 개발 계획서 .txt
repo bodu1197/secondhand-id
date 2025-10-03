@@ -586,6 +586,39 @@ const { data: { session } } = await supabase.auth.getSession()
 // 로그인 후:
 - 세션에 userId, name, email, avatar 저장
 - 홈페이지로 리다이렉트
+
+#### 1.3 소셜 로그인 (Google, Apple)
+```typescript
+// Supabase Auth 소셜 로그인
+
+// UI 요소:
+- "Google로 로그인" 버튼
+- "Apple로 로그인" 버튼
+
+// 로그인 프로세스:
+const supabase = createClientComponentClient()
+
+// Google 로그인:
+await supabase.auth.signInWithOAuth({
+  provider: 'google',
+  options: {
+    redirectTo: 'http://localhost:3000/auth/callback', // 개발 환경
+    // redirectTo: 'https://your-domain.com/auth/callback', // 배포 환경
+  },
+})
+
+// Apple 로그인:
+await supabase.auth.signInWithOAuth({
+  provider: 'apple',
+  options: {
+    redirectTo: 'http://localhost:3000/auth/callback', // 개발 환경
+  },
+})
+
+// 콜백 페이지 (/auth/callback)
+// Supabase Auth Helpers가 자동으로 세션 처리
+// 성공 시 홈페이지로 리다이렉트
+```
 ```
 ---
 
