@@ -1,0 +1,1060 @@
+# 인도네시아 중고거래 플랫폼 AI 개발 명령서
+
+## 프로젝트 개요
+**프로젝트명**: SecondHand.id
+**타입**: C2C 중고거래 플랫폼 (사용자 간 직거래)
+**주요 언어**: 인도네시아어 (Bahasa Indonesia)
+**타겟 디바이스**: 웹 (반응형), 추후 모바일 앱
+
+---
+
+## 기술 스택 요구사항
+
+### 프론트엔드
+```
+- Framework: Next.js 14 (App Router 사용)
+- 언어: TypeScript (strict mode)
+- 스타일링: Tailwind CSS
+- 상태관리: Zustand
+- 데이터 페칭: TanStack Query (React Query)
+- 폼 관리: React Hook Form + Zod validation
+- 이미지 최적화: next/image
+- 지도: Google Maps API 또는 Leaflet
+- 아이콘: Lucide React
+```
+
+### 백엔드
+```
+- Framework: Next.js API Routes (App Router)
+- 언어: TypeScript
+- 데이터베이스 클라이언트: Supabase JavaScript Client
+- 인증: Supabase Auth
+- 실시간 채팅: Supabase Realtime
+- 이미지 업로드: Supabase Storage
+- SMS 인증: Supabase Auth (Phone Auth)
+- Edge Functions: Netlify Functions (서버리스)
+```
+
+### 데이터베이스
+```
+- Main DB: Supabase PostgreSQL (https://supabase.com/)
+- 스키마 관리: Supabase Dashboard SQL Editor
+- Row Level Security (RLS): 필수 적용
+```
+
+### 배포 (필수)
+```
+- 호스팅: Netlify (https://app.netlify.com/)
+- 데이터베이스: Supabase (https://supabase.com/)
+- 인증: Supabase Auth
+- 실시간: Supabase Realtime
+- 이미지 스토리지: Supabase Storage
+- Edge Functions: Netlify Functions
+```
+
+---
+
+## 데이터베이스 스키마 (Supabase)
+
+### Supabase 프로젝트 설정
+```sql
+-- Supabase Dashboard > SQL Editor에서 실행
+
+-- 1. Extensions 활성화
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "postgis"; -- 위치 기반 검색용
+```
+
+### User (사용자)
+```sql
+-- users 테이블 (Supabase Auth와 연동)
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  auth_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  phone TEXT UNIQUE,
+  avatar TEXT,
+  location TEXT,
+  latitude DECIMAL(10, 8),
+  longitude DECIMAL(11, 8),
+  nik_verified BOOLEAN DEFAULT FALSE,
+  rating DECIMAL(3, 2) DEFAULT 0,
+  total_ratings INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS 정책
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+
+-- 모든 사용자는 다른 사용자 프로필 조회 가능
+CREATE POLICY "Users are viewable by everyone" 
+ON users FOR SELECT 
+USING (true);
+
+-- 자신의 프로필만 수정 가능
+CREATE POLICY "Users can update own profile" 
+ON users FOR UPDATE 
+USING (auth.uid() = auth_id);
+
+-- 인덱스
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_location ON users(location);
+```
+
+### Listing (상품 등록)
+```sql
+-- category enum
+CREATE TYPE category_type AS ENUM (
+  'ELECTRONICS',
+  'FASHION',
+  'FURNITURE',
+  'VEHICLES',
+  'BOOKS',
+  'SPORTS',
+  'TOYS',
+  'HOME_APPLIANCES',
+  'BEAUTY',
+  'OTHER'
+);
+
+-- condition enum
+CREATE TYPE condition_type AS ENUM (
+  'NEW',
+  'LIKE_NEW',
+  'GOOD',
+  'FAIR',
+  'POOR'
+);
+
+-- listing_status enum
+CREATE TYPE listing_status AS ENUM (
+  'ACTIVE',
+  'SOLD',
+  'RESERVED',
+  'DELETED'
+);
+
+-- listings 테이블
+CREATE TABLE listings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  price BIGINT NOT NULL,
+  category category_type NOT NULL,
+  condition condition_type NOT NULL,
+  images TEXT[] NOT NULL, -- 배열로 이미지 URL 저장
+  location TEXT NOT NULL,
+  latitude DECIMAL(10, 8) NOT NULL,
+  longitude DECIMAL(11, 8) NOT NULL,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  status listing_status DEFAULT 'ACTIVE',
+  views INTEGER DEFAULT 0,
+  is_premium BOOLEAN DEFAULT FALSE,
+  premium_until TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS 정책
+ALTER TABLE listings ENABLE ROW LEVEL SECURITY;
+
+-- 모든 사용자는 ACTIVE 상품 조회 가능
+CREATE POLICY "Active listings are viewable by everyone" 
+ON listings FOR SELECT 
+USING (status = 'ACTIVE' OR user_id = (SELECT id FROM users WHERE auth_id = auth.uid()));
+
+-- 자신의 상품만 수정 가능
+CREATE POLICY "Users can update own listings" 
+ON listings FOR UPDATE 
+USING (user_id = (SELECT id FROM users WHERE auth_id = auth.uid()));
+
+-- 로그인한 사용자는 상품 등록 가능
+CREATE POLICY "Authenticated users can create listings" 
+ON listings FOR INSERT 
+WITH CHECK (auth.uid() IS NOT NULL);
+
+-- 인덱스
+CREATE INDEX idx_listings_user_id ON listings(user_id);
+CREATE INDEX idx_listings_category ON listings(category);
+CREATE INDEX idx_listings_status ON listings(status);
+CREATE INDEX idx_listings_created_at ON listings(created_at DESC);
+CREATE INDEX idx_listings_location ON listings USING GIST(ll_to_earth(latitude, longitude)); -- 거리 검색용
+```
+
+### Chat (채팅)
+```sql
+-- chats 테이블
+CREATE TABLE chats (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  listing_id UUID REFERENCES listings(id) ON DELETE CASCADE,
+  buyer_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  seller_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  last_message TEXT,
+  last_message_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(listing_id, buyer_id)
+);
+
+-- message_type enum
+CREATE TYPE message_type AS ENUM (
+  'TEXT',
+  'IMAGE',
+  'LOCATION',
+  'OFFER'
+);
+
+-- messages 테이블
+CREATE TABLE messages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  chat_id UUID REFERENCES chats(id) ON DELETE CASCADE,
+  sender_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  image_url TEXT,
+  type message_type DEFAULT 'TEXT',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS 정책
+ALTER TABLE chats ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+
+-- 채팅 참여자만 조회 가능
+CREATE POLICY "Chat participants can view chats" 
+ON chats FOR SELECT 
+USING (
+  buyer_id = (SELECT id FROM users WHERE auth_id = auth.uid()) OR 
+  seller_id = (SELECT id FROM users WHERE auth_id = auth.uid())
+);
+
+-- 메시지는 채팅 참여자만 조회 가능
+CREATE POLICY "Chat participants can view messages" 
+ON messages FOR SELECT 
+USING (
+  chat_id IN (
+    SELECT id FROM chats 
+    WHERE buyer_id = (SELECT id FROM users WHERE auth_id = auth.uid()) 
+       OR seller_id = (SELECT id FROM users WHERE auth_id = auth.uid())
+  )
+);
+
+-- 채팅 참여자만 메시지 전송 가능
+CREATE POLICY "Chat participants can send messages" 
+ON messages FOR INSERT 
+WITH CHECK (
+  chat_id IN (
+    SELECT id FROM chats 
+    WHERE buyer_id = (SELECT id FROM users WHERE auth_id = auth.uid()) 
+       OR seller_id = (SELECT id FROM users WHERE auth_id = auth.uid())
+  )
+);
+
+-- 인덱스
+CREATE INDEX idx_chats_buyer_id ON chats(buyer_id);
+CREATE INDEX idx_chats_seller_id ON chats(seller_id);
+CREATE INDEX idx_chats_listing_id ON chats(listing_id);
+CREATE INDEX idx_messages_chat_id ON messages(chat_id);
+CREATE INDEX idx_messages_created_at ON messages(created_at);
+```
+
+### Review (후기)
+```sql
+-- reviews 테이블
+CREATE TABLE reviews (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  reviewer_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  reviewed_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comment TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(reviewer_id, reviewed_id)
+);
+
+-- RLS 정책
+ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+
+-- 모든 사용자는 후기 조회 가능
+CREATE POLICY "Reviews are viewable by everyone" 
+ON reviews FOR SELECT 
+USING (true);
+
+-- 로그인한 사용자는 후기 작성 가능
+CREATE POLICY "Authenticated users can create reviews" 
+ON reviews FOR INSERT 
+WITH CHECK (auth.uid() IS NOT NULL);
+
+-- 인덱스
+CREATE INDEX idx_reviews_reviewed_id ON reviews(reviewed_id);
+```
+
+### Report (신고)
+```sql
+-- report_status enum
+CREATE TYPE report_status AS ENUM (
+  'PENDING',
+  'REVIEWED',
+  'RESOLVED',
+  'REJECTED'
+);
+
+-- reports 테이블
+CREATE TABLE reports (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  reporter_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  reported_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  listing_id UUID REFERENCES listings(id) ON DELETE SET NULL,
+  reason TEXT NOT NULL,
+  description TEXT,
+  status report_status DEFAULT 'PENDING',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS 정책
+ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
+
+-- 관리자만 신고 조회 가능 (실제 구현 시 관리자 역할 체크 필요)
+CREATE POLICY "Only admins can view reports" 
+ON reports FOR SELECT 
+USING (
+  (SELECT users.email FROM users WHERE users.auth_id = auth.uid()) LIKE '%@admin.com'
+);
+
+-- 로그인한 사용자는 신고 가능
+CREATE POLICY "Authenticated users can create reports" 
+ON reports FOR INSERT 
+WITH CHECK (auth.uid() IS NOT NULL);
+
+-- 인덱스
+CREATE INDEX idx_reports_status ON reports(status);
+CREATE INDEX idx_reports_listing_id ON reports(listing_id);
+```
+
+---
+
+## Supabase 초기 설정 가이드
+
+### 1. Supabase 프로젝트 생성
+```bash
+1. https://supabase.com/ 접속
+2. "New Project" 클릭
+3. Organization 선택 또는 생성
+4. Project Name: secondhand-id
+5. Database Password: 강력한 비밀번호 설정 (저장 필수!)
+6. Region: Singapore (동남아시아에 가장 가까움)
+7. "Create new project" 클릭
+```
+
+### 2. 데이터베이스 스키마 생성
+```bash
+1. Supabase Dashboard > SQL Editor
+2. 위의 모든 SQL 문을 순서대로 실행:
+   - Extensions 활성화
+   - users 테이블 생성
+   - listings 테이블 생성
+   - chats, messages 테이블 생성
+   - reviews 테이블 생성
+   - reports 테이블 생성
+3. 각 SQL 문 실행 후 "Success" 확인
+```
+
+### 3. Supabase Auth 설정
+```bash
+1. Supabase Dashboard > Authentication > Providers
+2. Email 활성화:
+   - 'Enable Email provider'가 켜져 있는지 확인합니다. (기본값)
+   - **'Confirm email' 스위치를 켭니다.** (보안을 위해 필수)
+3. Phone 비활성화 (선택사항)
+```
+
+### 4. Supabase Storage 설정 (이미지 업로드)
+```bash
+1. Supabase Dashboard > Storage
+2. "Create bucket" 클릭
+3. Bucket 설정:
+   - Name: listings-images
+   - Public bucket: ✅ (체크)
+   - File size limit: 5MB
+   - Allowed MIME types: image/jpeg, image/png, image/webp
+4. "Create bucket" 클릭
+```
+
+### 5. 환경 변수 설정
+```bash
+# 프로젝트 루트에 .env.local 파일 생성
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGc... # 서버사이드 전용
+
+# Supabase Dashboard > Settings > API에서 복사
+```
+
+---
+
+## Netlify 배포 가이드
+
+### 1. GitHub 레포지토리 생성
+```bash
+# 로컬에서
+git init
+git add .
+git commit -m "Initial commit"
+git branch -M main
+git remote add origin https://github.com/yourusername/secondhand-id.git
+git push -u origin main
+```
+
+### 2. Netlify 프로젝트 생성
+```bash
+1. https://app.netlify.com/ 접속
+2. "Add new site" > "Import an existing project"
+3. "GitHub" 선택
+4. 레포지토리 선택: secondhand-id
+5. Build settings:
+   - Branch: main
+   - Build command: npm run build
+   - Publish directory: .next
+   - Functions directory: netlify/functions (선택사항)
+6. "Advanced build settings" 클릭
+7. Environment variables 추가:
+   - NEXT_PUBLIC_SUPABASE_URL
+   - NEXT_PUBLIC_SUPABASE_ANON_KEY
+   - SUPABASE_SERVICE_ROLE_KEY
+8. "Deploy site" 클릭
+```
+
+### 3. Netlify 추가 설정
+```bash
+# netlify.toml 파일 생성 (프로젝트 루트)
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[functions]
+  directory = "netlify/functions"
+```
+
+### 4. 커스텀 도메인 설정 (선택사항)
+```bash
+1. Netlify Dashboard > Domain settings
+2. "Add custom domain" 클릭
+3. 도메인 입력: secondhand.id
+4. DNS 설정:
+   - A 레코드: 75.2.60.5
+   - CNAME: secondhand-id.netlify.app
+5. SSL 인증서 자동 발급 확인
+```
+
+---
+
+## 페이지 및 라우팅 구조
+
+```
+/                          → 홈페이지 (최근 상품, 인기 카테고리)
+/listings                  → 전체 상품 리스트
+/listings/[id]            → 상품 상세
+/listings/create          → 상품 등록
+/listings/edit/[id]       → 상품 수정
+
+/search                   → 검색 결과
+/category/[slug]          → 카테고리별 상품
+
+/profile/[id]             → 사용자 프로필 (공개)
+/my-profile               → 내 프로필 (비공개)
+/my-listings              → 내 등록 상품
+/favorites                → 찜한 상품
+
+/chats                    → 채팅 목록
+/chats/[id]              → 채팅방
+
+/auth/login              → 로그인
+/auth/register           → 회원가입
+/auth/verify-phone       → 전화번호 인증
+
+/admin                   → 관리자 대시보드
+/admin/users             → 사용자 관리
+/admin/listings          → 상품 관리
+/admin/reports           → 신고 관리
+```
+
+---
+
+## 상세 기능 구현 명령
+
+### 1. 회원가입 및 인증
+
+#### 1.1 회원가입 페이지 (`/auth/register`)
+```typescript
+// Supabase Auth 사용
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+
+// 요구사항:
+- 이메일 입력
+- 이름 입력 (필수)
+- 비밀번호 입력 (최소 8자, 영문+숫자 조합)
+- 비밀번호 확인
+- 이용약관 동의 체크박스
+
+// 검증 규칙 (Zod):
+{
+  email: z.string().email("올바른 이메일 주소를 입력하세요"),
+  name: z.string()
+    .min(2, "이름은 최소 2자 이상입니다")
+    .max(50, "이름은 최대 50자입니다"),
+  password: z.string()
+    .min(8, "비밀번호는 최소 8자 이상입니다")
+    .regex(/^(?=.*[A-Za-z])(?=.*\d)/, "영문과 숫자를 포함해야 합니다"),
+  confirmPassword: z.string(),
+  agreeTerms: z.boolean().refine(val => val === true)
+}
+
+// 회원가입 프로세스 (Supabase):
+const supabase = createClientComponentClient()
+
+1. 폼 제출 시:
+   const { data, error } = await supabase.auth.signUp({
+     email: formData.email,
+     password: formData.password,
+     options: {
+       data: {
+         name: formData.name
+       }
+     }
+   })
+
+2. Supabase가 자동으로 이메일 인증 링크 전송
+
+3. 사용자에게 이메일 확인 요청 메시지 표시
+
+4. users 테이블에 추가 정보 저장:
+   await supabase.from('users').insert({
+     auth_id: data.user.id,
+     name: formData.name,
+     email: formData.email,
+   })
+```
+
+
+
+#### 1.2 로그인 페이지 (`/auth/login`)
+```typescript
+// Supabase Auth 로그인
+
+// 로그인 방식:
+- 이메일 + 비밀번호
+
+const supabase = createClientComponentClient()
+
+// 로그인:
+const { data, error } = await supabase.auth.signInWithPassword({
+  email: formData.email,
+  password: formData.password
+})
+
+// 로그인 후:
+- Supabase가 자동으로 세션 생성
+- 쿠키에 access_token 저장
+- 홈페이지로 리다이렉트
+
+// 세션 확인:
+const { data: { session } } = await supabase.auth.getSession()
+```CredentialsProvider({
+    credentials: {
+      email: { type: "text" },
+      password: { type: "password" }
+    },
+    async authorize(credentials) {
+      // 1. 이메일로 User 조회
+      // 2. 비밀번호 bcrypt 검증
+      // 3. 이메일 인증 여부 확인 (Supabase Auth가 처리)
+      // 4. 성공 시 user 객체 반환
+    }
+  })
+]
+
+// 로그인 후:
+- 세션에 userId, name, email, avatar 저장
+- 홈페이지로 리다이렉트
+```
+---
+
+### 2. 상품 등록
+
+#### 2.1 상품 등록 페이지 (`/listings/create`)
+```typescript
+// 접근 권한:
+- 로그인 필수
+- phoneVerified === true 필수
+
+// UI 구성:
+1. 이미지 업로드 섹션
+   - 드래그 앤 드롭 지원
+   - 최대 10장
+   - 이미지 미리보기
+   - 순서 변경 가능 (드래그)
+   - 이미지당 최대 5MB
+   - 허용 형식: JPG, PNG, WEBP
+
+2. 제목
+   - placeholder: "예: 아이폰 13 Pro 256GB 실버"
+   - 최소 10자, 최대 100자
+
+3. 카테고리 선택
+   - 드롭다운 또는 그리드 선택
+   - 카테고리별 아이콘 표시
+
+4. 가격
+   - 숫자만 입력 (루피아)
+   - 1,000 단위 콤마 자동 추가
+   - placeholder: "50000000"
+   - 표시: "Rp 50,000,000"
+
+5. 상품 상태
+   - 라디오 버튼: 새 상품 / 거의 새것 / 좋음 / 보통 / 나쁨
+
+6. 설명
+   - 텍스트 에리어
+   - 최소 20자, 최대 2000자
+   - 글자 수 카운터 표시
+
+7. 위치
+   - 자동: 사용자의 저장된 location 사용
+   - 수동: 지도에서 위치 선택 또는 주소 검색
+   - latitude, longitude 저장
+
+// 이미지 업로드 프로세스:
+1. 클라이언트에서 이미지 선택
+2. 클라이언트에서 리사이징 (최대 1920x1920)
+3. Cloudinary/Uploadthing 업로드
+4. URL 배열로 저장
+5. 업로드 중 로딩 스피너 표시
+
+// 폼 검증:
+{
+  title: z.string().min(10).max(100),
+  category: z.nativeEnum(Category),
+  price: z.number().min(1000).max(999999999999),
+  condition: z.nativeEnum(Condition),
+  description: z.string().min(20).max(2000),
+  images: z.array(z.string()).min(1).max(10),
+  location: z.string(),
+  latitude: z.number(),
+  longitude: z.number()
+}
+
+// API 호출:
+POST /api/listings
+{
+  title, category, price, condition, description,
+  images, location, latitude, longitude,
+  userId: session.user.id
+}
+
+// 성공 시:
+- 상품 상세 페이지로 리다이렉트
+- 토스트 메시지: "상품이 등록되었습니다"
+```
+
+---
+
+### 3. 상품 목록 및 검색
+
+#### 3.1 홈페이지 (`/`)
+```typescript
+// 섹션 구성:
+1. 히어로 섹션
+   - 검색바 (키워드 입력)
+   - 인기 카테고리 버튼 (8개)
+
+2. 최근 등록 상품 (24개)
+   - 그리드 레이아웃 (데스크탑 4열, 태블릿 3열, 모바일 2열)
+   - 무한 스크롤 또는 페이지네이션
+
+3. 프리미엄 광고 상품 (상단 고정)
+   - 별도 배지 표시
+
+// 상품 카드 컴포넌트:
+<ListingCard>
+  - 썸네일 이미지 (첫 번째 이미지)
+  - 제목 (1줄, 말줄임)
+  - 가격 (Rp 포맷)
+  - 위치 아이콘 + 지역명
+  - 업로드 시간 (상대시간: "3시간 전")
+  - 찜하기 버튼 (하트 아이콘)
+</ListingCard>
+
+// API:
+GET /api/listings?page=1&limit=24&sort=createdAt&order=desc
+```
+
+#### 3.2 검색 페이지 (`/search?q=keyword`)
+```typescript
+// 왼쪽 필터 사이드바:
+1. 카테고리 (체크박스)
+2. 가격 범위 (슬라이더)
+   - 최소: 0
+   - 최대: 무제한
+   - 직접 입력 가능
+3. 상품 상태 (체크박스)
+4. 지역 (드롭다운)
+5. 거리 (반경)
+   - 1km, 5km, 10km, 50km, 전체
+
+// 정렬 옵션:
+- 최신순
+- 낮은 가격순
+- 높은 가격순
+- 거리순 (위치 권한 필요)
+
+// 검색 로직:
+- 제목 + 설명에서 키워드 검색 (대소문자 무시)
+- 필터 조건 AND 조합
+- 페이지네이션 (24개씩)
+
+// API:
+GET /api/listings/search?
+  q=keyword
+  &category[]=ELECTRONICS
+  &priceMin=100000
+  &priceMax=5000000
+  &condition[]=NEW&condition[]=LIKE_NEW
+  &location=Jakarta
+  &distance=10
+  &sort=price
+  &order=asc
+  &page=1
+
+// 결과가 없을 때:
+- "검색 결과가 없습니다" 메시지
+- 필터 초기화 버튼
+- 인기 상품 추천
+```
+
+---
+
+### 4. 상품 상세 페이지
+
+#### 4.1 상품 상세 (`/listings/[id]`)
+```typescript
+// 레이아웃 (데스크탑):
+[이미지 갤러리 60%] [상품 정보 40%]
+
+// 이미지 갤러리:
+- 메인 이미지 (큰 크기)
+- 썸네일 리스트 (하단 또는 측면)
+- 클릭 시 라이트박스 모달 (이미지 확대)
+- 좌우 화살표로 이미지 전환
+- 줌 인/아웃 기능
+
+// 상품 정보 (오른쪽):
+1. 제목 (h1)
+2. 가격 (Rp, 큰 글씨, 볼드)
+3. 위치 + 업로드 시간
+4. 조회수
+5. 카테고리 배지
+6. 상품 상태 배지
+
+7. 판매자 정보
+   - 아바타 + 이름
+   - 평점 (별점 + 숫자)
+   - "프로필 보기" 버튼
+   
+8. 액션 버튼:
+   - "채팅하기" (메인 버튼, 큰 사이즈)
+   - "찜하기" (하트 아이콘)
+   - "공유하기" (공유 아이콘)
+   - 자신의 상품일 경우:
+     * "수정" 버튼
+     * "삭제" 버튼
+     * "판매완료" 버튼
+
+9. 설명 섹션 (하단)
+   - 제목: "상품 설명"
+   - 줄바꿈 유지
+   - 링크 자동 변환
+
+10. 신고하기 버튼 (작게, 하단)
+
+// 조회수 증가:
+- 페이지 로드 시 views +1
+- API: POST /api/listings/[id]/view
+
+// 채팅하기 버튼 클릭:
+1. 로그인 확인
+2. 자신의 상품인지 확인 (자신의 상품이면 버튼 비활성화)
+3. 기존 채팅방 확인
+   - 있으면: 해당 채팅방으로 이동
+   - 없으면: 새 채팅방 생성 후 이동
+4. /chats/[chatId]로 리다이렉트
+
+// 삭제 버튼:
+- 확인 모달: "정말 삭제하시겠습니까?"
+- API: DELETE /api/listings/[id]
+- status를 DELETED로 변경 (소프트 삭제)
+- 내 등록 상품 페이지로 리다이렉트
+```
+
+---
+
+### 5. 채팅 시스템
+
+#### 5.1 채팅 목록 페이지 (`/chats`)
+```typescript
+// UI 구성:
+- 왼쪽: 채팅방 리스트
+- 오른쪽: 선택된 채팅방 (데스크탑)
+- 모바일: 리스트만 표시, 선택 시 전체 화면 채팅
+
+// 채팅방 리스트 아이템:
+<ChatListItem>
+  - 상대방 아바타
+  - 상대방 이름
+  - 상품 썸네일 (작게)
+  - 마지막 메시지 (1줄, 말줄임)
+  - 시간 (상대시간)
+  - 읽지 않은 메시지 배지 (숫자)
+</ChatListItem>
+
+// 정렬:
+- 마지막 메시지 시간순
+
+// API:
+GET /api/chats
+- 현재 사용자가 buyer 또는 seller인 모든 채팅방
+- 각 채팅방의 listing, 상대방 정보 포함
+```
+
+#### 5.2 채팅방 페이지 (`/chats/[id]`)
+```typescript
+// 레이아웃:
+[헤더]
+[메시지 영역]
+[입력창]
+
+// 헤더:
+- 뒤로가기 버튼
+- 상대방 아바타 + 이름
+- 상품 정보 (썸네일 + 제목)
+- 더보기 메뉴:
+  * 상품 보기
+  * 신고하기
+  * 채팅방 나가기
+
+// 메시지 영역:
+- 역순 표시 (최신 메시지가 하단)
+- 자동 스크롤 (새 메시지 시)
+- 무한 스크롤 (위로 스크롤 시 이전 메시지 로드)
+
+// 메시지 버블:
+- 내 메시지: 오른쪽 정렬, 파란색 배경
+- 상대방 메시지: 왼쪽 정렬, 회색 배경
+- 시간 표시 (같은 분에 여러 메시지는 마지막에만 표시)
+- 이미지 메시지: 썸네일 표시, 클릭 시 확대
+
+// 입력창:
+- 텍스트 입력 필드
+- 이미지 첨부 버튼
+- 전송 버튼
+- Enter 키로 전송 (Shift+Enter는 줄바꿈)
+
+// 실시간 메시지:
+- Pusher 또는 Supabase Realtime 사용
+- 채널: `chat-${chatId}`
+- 이벤트: 'new-message'
+- 상대방이 메시지 전송 시 즉시 표시
+
+// API:
+GET /api/chats/[id]/messages?page=1
+POST /api/chats/[id]/messages
+{
+  content: string,
+  type: 'TEXT' | 'IMAGE',
+  imageUrl?: string
+}
+
+// 가격 제안 메시지 (선택 기능):
+- "가격 제안" 버튼
+- 모달: 제안 가격 입력
+- 특수 메시지 타입으로 전송
+- 판매자는 "수락" / "거절" 버튼 표시
+```
+
+---
+
+### 6. 사용자 프로필
+
+#### 6.1 공개 프로필 (`/profile/[id]`)
+```typescript
+// 섹션:
+1. 프로필 헤더
+   - 아바타 (큰 사이즈)
+   - 이름
+   - 가입일
+   - 평점 (별점 + 숫자)
+   - NIK 인증 배지 (인증된 경우)
+   - "채팅하기" 버튼 (본인 제외)
+
+2. 판매 중인 상품 탭
+   - 그리드 레이아웃
+   - 상품 카드 표시
+   - 페이지네이션
+
+3. 후기 탭
+   - 받은 후기 목록
+   - 평점 + 작성자 + 코멘트 + 날짜
+   - 최신순 정렬
+
+// API:
+GET /api/users/[id]
+GET /api/users/[id]/listings
+GET /api/users/[id]/reviews
+```
+
+#### 6.2 내 프로필 (`/my-profile`)
+```typescript
+// 편집 가능한 필드:
+- 아바타 (이미지 업로드)
+- 이름
+- 위치 (지역 선택)
+- 자기소개 (선택, 최대 200자)
+
+// 추가 정보:
+- 전화번호 (변경 불가, 표시만)
+- 이메일 (선택 입력)
+- NIK 인증 버튼 (미인증 시)
+
+// NIK 인증 프로세스:
+1. "NIK 인증" 버튼 클릭
+2. 모달: NIK 16자리 입력
+3. 신분증 사진 업로드
+4. API: POST /api/users/verify-nik
+5. 관리자 검토 후 승인 (수동)
+
+// 비밀번호 변경:
+- 현재 비밀번호 입력
+- 새 비밀번호 입력
+- 새 비밀번호 확인
+
+// API:
+GET /api/users/me
+PATCH /api/users/me
+{
+  name?, avatar?, location?, bio?, email?
+}
+
+POST /api/users/change-password
+{
+  currentPassword, newPassword
+}
+```
+
+#### 6.3 내 등록 상품 (`/my-listings`)
+```typescript
+// 탭:
+1. 판매중
+2. 예약중
+3. 판매완료
+4. 삭제됨
+
+// 각 탭별 상품 리스트:
+- 그리드 레이아웃
+- 상품 카드 + 빠른 액션 버튼
+  * 수정
+  * 상태 변경 (판매중 ↔ 예약중 ↔ 판매완료)
+  * 삭제
+  * 프리미엄 광고 (판매중만)
+
+// 프리미엄 광고:
+- "프리미엄으로 등록" 버튼
+- 모달: 기간 선택 (3일/7일/30일)
+- 가격 표시
+- 결제 없이 임시로 isPremium = true 설정 (실제로는 결제 연동 필요)
+
+// API:
+GET /api/listings/my?status=ACTIVE
+PATCH /api/listings/[id]/status
+{
+  status: 'ACTIVE' | 'RESERVED' | 'SOLD'
+}
+```
+
+---
+
+### 7. 후기 시스템
+
+#### 7.1 후기 작성
+```typescript
+// 트리거:
+- 판매자가 상품을 "판매완료" 처리
+- 해당 상품의 채팅방에 있던 구매자에게 알림
+- "후기 작성하기" 버튼 표시
+
+// 후기 작성 모달:
+- 평점 선택 (1-5 별점)
+- 코멘트 입력 (선택, 최대 500자)
+- "제출" 버튼
+
+// API:
+POST /api/reviews
+{
+  reviewedId: string, // 판매자 ID
+  rating: number,
+  comment?: string
+}
+
+// 후기 작성 후:
+- 판매자의 rating 재계산
+  rating = (총점) / (totalRatings)
+- User 업데이트
+```
+
+---
+
+### 8. 신고 시스템
+
+#### 8.1 신고하기
+```typescript
+// 신고 대상:
+- 상품
+- 사용자 (채팅에서)
+
+// 신고 모달:
+1. 신고 사유 선택 (라디오)
+   - 사기/허위 매물
+   - 부적절한 콘텐츠
+   - 욕설/비방
+   - 스팸
+   - 기타
+
+2. 상세 설명 (텍스트 에리어, 선택)
+
+// API:
+POST /api/reports
+{
+  reportedId?: string, // 사용자 신고 시
+  listingId?: string,  // 상품 신고 시
+  reason: string,
+  description?: string
+}
+
+// 신고 후:
+- 토스트 메시지: "신고가 접수되었습니다"
+- 관리자 대시보드에 표시
+```
+
+---
+
+### 9. 관리자 대시보드
+
+####
