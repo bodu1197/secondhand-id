@@ -181,7 +181,7 @@ export default function Home() {
                   <div className="relative w-full h-48">
                     {product.images && product.images.length > 0 ? (
                       <Image
-                        src={`https://eiqskgzghfehpmlttyju.supabase.co/storage/v1/object/public/product-images/${product.images[0]}`}
+                        src={`https://eiqskgzghfehpmlttyju.supabase.co/storage/v1/object/public/listings-images/${product.images[0]}`}
                         alt={product.title}
                         fill
                         style={{ objectFit: "cover" }}
