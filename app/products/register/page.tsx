@@ -70,7 +70,7 @@ export default function RegisterProductPage() {
         const fileExt = image.name.split('.').pop();
         const fileName = `${user.id}/${Math.random()}.${fileExt}`;
         const { data, error: uploadError } = await supabase.storage
-          .from('product-images')
+          .from('listings-images')
           .upload(fileName, image);
 
         if (uploadError) throw uploadError;
