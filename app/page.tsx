@@ -180,8 +180,12 @@ export default function Home() {
                 <div className="bg-[#1f2937] rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
                   <div className="relative w-full h-48">
                     {product.images && product.images.length > 0 ? (
+import { getImageUrl } from '../utils/getImageUrl';
+
+// ... (rest of the file)
+
                       <Image
-                        src={`https://ulwwlniyoypmfhpjrvdn.supabase.co/storage/v1/object/public/listings-images/${product.images[0]}`}
+                        src={getImageUrl(product.images[0])}
                         alt={product.title}
                         fill
                         priority

@@ -5,6 +5,7 @@ import Header from '../../components/Header';
 import Link from 'next/link';
 import Footer from '../../components/Footer';
 import MobileBottomNav from '../../components/MobileBottomNav';
+import { getImageUrl } from '../../../utils/getImageUrl';
 
 interface ProductDetailPageProps {
   params: Promise<{ id: string }>;
@@ -58,7 +59,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
           <div className="relative w-full h-96 bg-gray-200 rounded-lg overflow-hidden mb-6">
             {product.images && product.images.length > 0 ? (
               <Image
-                src={`https://ulwwlniyoypmfhpjrvdn.supabase.co/storage/v1/object/public/listings-images/${product.images[0]}`}
+                src={getImageUrl(product.images[0])}
                 alt={product.title}
                 fill
                 priority
