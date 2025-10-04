@@ -1,3 +1,5 @@
+import { getImageUrl } from '../utils/getImageUrl';
+
 "use client";
 import Image from "next/image";
 import { useState, useEffect } from "react";
@@ -179,11 +181,6 @@ export default function Home() {
               <Link href={`/products/${product.id}`} key={product.id}>
                 <div className="bg-[#1f2937] rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
                   <div className="relative w-full h-48">
-                    {product.images && product.images.length > 0 ? (
-import { getImageUrl } from '../utils/getImageUrl';
-
-// ... (rest of the file)
-
                       <Image
                         src={getImageUrl(product.images[0])}
                         alt={product.title}
@@ -192,9 +189,6 @@ import { getImageUrl } from '../utils/getImageUrl';
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 800px"
                         style={{ objectFit: "cover" }}
                       />
-                    ) : (
-                      <div className="flex items-center justify-center w-full h-full text-gray-500">Tidak ada gambar</div>
-                    )}
                   </div>
                   <div className="p-4">
                     <h2 className="text-lg font-semibold text-gray-100 truncate">{product.title}</h2>
