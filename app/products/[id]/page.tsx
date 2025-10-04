@@ -4,7 +4,7 @@ import Image from "next/image";
 import Header from '../../components/Header';
 import Link from 'next/link';
 import Footer from '../../components/Footer';
-import MobileBottomNav from '../../../components/MobileBottomNav';
+import MobileBottomNav from '../../components/MobileBottomNav';
 
 interface ProductDetailPageProps {
   params: { id: string };
