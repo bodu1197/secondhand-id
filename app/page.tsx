@@ -20,7 +20,30 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState(""); // Added for mobile search
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [userLatitude, setUserLatitude] = useState<number | null>(null);
+  const [userLongitude, setUserLongitude] = useState<number | null>(null);
+  const [radius, setRadius] = useState<number>(10); // Default radius in km
+  const [useCurrentLocation, setUseCurrentLocation] = useState<boolean>(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if (useCurrentLocation && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLatitude(position.coords.latitude);
+          setUserLongitude(position.coords.longitude);
+        },
+        (error) => {
+          console.error("Error getting user location:", error);
+          setUseCurrentLocation(false); // Turn off if permission denied or error
+        }
+      );
+    } else {
+      setUserLatitude(null);
+      setUserLongitude(null);
+    }
+  }, [useCurrentLocation]);
+
 
 
   useEffect(() => {
@@ -43,6 +66,12 @@ export default function Home() {
         query.set("regency", selectedRegency);
       }
 
+      if (useCurrentLocation && userLatitude !== null && userLongitude !== null) {
+        query.set("latitude", userLatitude.toString());
+        query.set("longitude", userLongitude.toString());
+        query.set("radius", radius.toString());
+      }
+
       const response = await fetch(`/api/products?${query.toString()}`);
       const data = await response.json();
       if (Array.isArray(data)) {
@@ -54,7 +83,7 @@ export default function Home() {
     };
 
     fetchProducts();
-  }, [searchQuery, selectedCategory, selectedSubcategory, selectedLocation, selectedRegency]);
+  }, [searchQuery, selectedCategory, selectedSubcategory, selectedLocation, selectedRegency, userLatitude, userLongitude, radius, useCurrentLocation]);
 
 
 
@@ -66,6 +95,8 @@ export default function Home() {
       setSelectedLocation("");
       setSelectedRegency("");
       setSearchQuery(""); // Also clear mobile search query
+      setUseCurrentLocation(false); // Reset current location usage
+      setRadius(10); // Reset radius
     };
   return (
     <div className="bg-[#111827] text-gray-200">
@@ -144,6 +175,27 @@ export default function Home() {
               Reset
             </button>
           </div>
+        </div>
+        {/* Proximity Search Controls */}
+        <div className="flex items-center space-x-2 mt-4 justify-center">
+          <input
+            type="checkbox"
+            id="useLocation"
+            checked={useCurrentLocation}
+            onChange={(e) => setUseCurrentLocation(e.target.checked)}
+            className="form-checkbox h-5 w-5 text-blue-600"
+          />
+          <label htmlFor="useLocation" className="text-gray-300">Use Current Location</label>
+          {useCurrentLocation && (
+            <input
+              type="number"
+              placeholder="Radius (km)"
+              value={radius}
+              onChange={(e) => setRadius(parseFloat(e.target.value) || 0)}
+              className="p-2 rounded-lg border border-gray-700 bg-[#1f2937] text-white w-24"
+              min="1"
+            />
+          )}
         </div>
         <div className="md:hidden mt-4 space-y-4">
           {selectedCategory && (
