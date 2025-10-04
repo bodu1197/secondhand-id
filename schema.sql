@@ -36,9 +36,15 @@ CREATE POLICY "Users are viewable by everyone"
 ON users FOR SELECT 
 USING (true);
 
+-- 자신의 프로필만 수정 가능
 CREATE POLICY "Users can update own profile" 
 ON users FOR UPDATE 
-USING (auth.uid() = auth_id);
+USING (auth.uid() = auth.uid());
+
+-- 로그인한 사용자는 자신의 프로필을 생성 가능
+CREATE POLICY "Authenticated users can create their own profile" 
+ON users FOR INSERT 
+WITH CHECK (auth.uid() = auth_id);
 
 -- Indexes for faster queries
 CREATE INDEX idx_users_email ON users(email);
