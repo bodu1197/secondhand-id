@@ -33,7 +33,7 @@ export default function RegisterProductPage() {
   useEffect(() => {
     const fetchCoordinates = async () => {
       if (selectedLocation && selectedRegency) {
-        const address = `${selectedRegency}, ${selectedLocation}, Indonesia`; // Assuming Indonesia context
+        const address = `${selectedRegency}, ${selectedLocation}, Indonesia`.replace(/\s+/g, ' ').trim(); // Normalize spaces
         // Replace with your actual geocoding API endpoint and API key
         // Example for Google Geocoding API:
         // const apiKey = 'YOUR_GOOGLE_GEOCODING_API_KEY';
