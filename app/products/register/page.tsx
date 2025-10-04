@@ -118,7 +118,7 @@ export default function RegisterProductPage() {
 
         if (uploadError) throw uploadError;
         console.log("Supabase upload data.path:", data.path); // Debugging line
-        imageUrls.push(`https://ulwwlniyoypmfhpjrvdn.supabase.co/storage/v1/object/public/listings-images/${data.path}`);
+        imageUrls.push(data.path);
       }
 
       const { error: productError } = await supabase.from('listings').insert({
