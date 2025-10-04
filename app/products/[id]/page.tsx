@@ -28,8 +28,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
       images,
       latitude,
       longitude,
-      user_id,
-      users(id, name)
+      user_id
     `)
     .eq('id', id)
     .single();
