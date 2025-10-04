@@ -13,6 +13,9 @@ export async function GET(request: Request) {
     const subcategory = searchParams.get('subcategory');
     const location = searchParams.get('location');
     const regency = searchParams.get('regency');
+    const userLat = searchParams.get('latitude');
+    const userLon = searchParams.get('longitude');
+    const radiusKm = searchParams.get('radius');
 
     const cookieStore = await cookies();
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
@@ -26,7 +29,9 @@ export async function GET(request: Request) {
       category,
       location,
       images,
-      created_at
+      created_at,
+      latitude,
+      longitude
     `);
 
     if (query && query.trim() !== '') {
@@ -43,6 +48,20 @@ export async function GET(request: Request) {
     }
     if (subcategory) {
       productsQuery = productsQuery.eq('subcategory', subcategory); // Assuming a column named 'subcategory'
+    }
+
+    if (userLat && userLon && radiusKm) {
+      const lat = parseFloat(userLat);
+      const lon = parseFloat(userLon);
+      const radius = parseFloat(radiusKm) * 1000; // Convert km to meters for st_distance_sphere
+
+      productsQuery = productsQuery.filter(
+        'st_distance_sphere(st_makepoint(longitude, latitude), st_makepoint(?, ?))',
+        'lte',
+        radius,
+        lon, // Pass lon first for st_makepoint(lon, lat)
+        lat
+      );
     }
 
     console.log("--- [GET /api/products] Executing Supabase query ---");
