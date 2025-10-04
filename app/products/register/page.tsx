@@ -93,7 +93,7 @@ export default function RegisterProductPage() {
       alert("Produk berhasil didaftarkan!");
       router.push("/");
     } catch (err: any) {
-      console.error("Error registering product:", err);
+      console.error("Error registering product:", err, JSON.stringify(err));
       setError(err.message || "Failed to register product.");
     } finally {
       setLoading(false);
