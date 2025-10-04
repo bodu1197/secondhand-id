@@ -180,11 +180,10 @@ export default function Home() {
                 <div className="bg-[#1f2937] rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
                   <div className="relative w-full h-48">
                     {product.images && product.images.length > 0 ? (
-                      <Image
+                      <img
                         src={`https://eiqskgzghfehpmlttyju.supabase.co/storage/v1/object/public/listings-images/${product.images[0]}`}
                         alt={product.title}
-                        fill
-                        style={{ objectFit: "cover" }}
+                        style={{ objectFit: "cover", width: "100%", height: "100%" }}
                       />
                     ) : (
                       <div className="flex items-center justify-center w-full h-full text-gray-500">Tidak ada gambar</div>
