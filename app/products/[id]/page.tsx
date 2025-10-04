@@ -59,7 +59,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
               <p className="text-gray-600 mb-2"><strong>Kondisi:</strong> {product.condition}</p>
               <p className="text-gray-600 mb-2"><strong>Kategori:</strong> {product.category_main} {product.category_sub ? `> ${product.category_sub}` : ''}</p>
               <p className="text-gray-600 mb-2"><strong>Lokasi Transaksi:</strong> {product.location_province} {product.location_regency}</p>
-              {product.contact_info && <p className="text-gray-600 mb-2"><strong>Kontak:</strong> {product.contact_info}</p>}}
+              {product.contact_info && <p className="text-gray-600 mb-2"><strong>Kontak:</strong> {product.contact_info}</p>}
             </div>
             <div>
               <p className="text-gray-600 mb-2"><strong>Penjual:</strong> {sellerNickname}</p>
