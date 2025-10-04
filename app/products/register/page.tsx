@@ -117,6 +117,7 @@ export default function RegisterProductPage() {
           .upload(fileName, image);
 
         if (uploadError) throw uploadError;
+        console.log("Supabase upload data.path:", data.path); // Debugging line
         imageUrls.push(`https://ulwwlniyoypmfhpjrvdn.supabase.co/storage/v1/object/public/listings-images/${data.path}`);
       }
 
