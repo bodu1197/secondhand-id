@@ -38,6 +38,12 @@ export async function GET(request: Request) {
     if (location) {
       productsQuery = productsQuery.eq('location', location);
     }
+    if (regency) {
+      productsQuery = productsQuery.eq('location_regency', regency); // Assuming a column named 'location_regency' for regency
+    }
+    if (subcategory) {
+      productsQuery = productsQuery.eq('subcategory', subcategory); // Assuming a column named 'subcategory'
+    }
 
     console.log("--- [GET /api/products] Executing Supabase query ---");
     const { data, error } = await productsQuery;
