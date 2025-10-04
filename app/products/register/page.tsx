@@ -115,7 +115,7 @@ export default function RegisterProductPage() {
               <input
                 type="text"
                 id="title"
-                className="shadow appearance-none border border-gray-600 rounded w-full py-2 px-3 bg-gray-700 text-gray-200 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="shadow appearance-none border border-gray-600 rounded w-full py-2 px-3 bg-[#1f2937] text-gray-200 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
@@ -127,7 +127,7 @@ export default function RegisterProductPage() {
               <textarea
                 id="description"
                 rows={5}
-                className="shadow appearance-none border border-gray-600 rounded w-full py-2 px-3 bg-gray-700 text-gray-200 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="shadow appearance-none border border-gray-600 rounded w-full py-2 px-3 bg-[#1f2937] text-gray-200 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 required
@@ -139,7 +139,7 @@ export default function RegisterProductPage() {
               <input
                 type="number"
                 id="price"
-                className="shadow appearance-none border border-gray-600 rounded w-full py-2 px-3 bg-gray-700 text-gray-200 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="shadow appearance-none border border-gray-600 rounded w-full py-2 px-3 bg-[#1f2937] text-gray-200 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 required
