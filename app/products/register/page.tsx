@@ -101,13 +101,12 @@ export default function RegisterProductPage() {
   };
 
   return (
-    <div className="bg-[#111827] min-h-screen text-gray-200">
+    <div className="bg-white min-h-screen flex items-center justify-center">
       <Header />
       <main className="pt-20 pb-24">
-        <div className="w-full bg-[#1f2937] py-8 rounded-lg shadow-lg">
-          <div className="max-w-screen-xl mx-auto px-6">
-            <h1 className="text-3xl font-bold text-center mb-8 text-white">Daftar Produk</h1>
-            <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="max-w-screen-xl mx-auto px-6 bg-[#1f2937] py-8 rounded-lg shadow-lg">
+          <h1 className="text-3xl font-bold text-center mb-8 text-white">Daftar Produk</h1>
+          <form onSubmit={handleSubmit} className="space-y-6">
             {error && <p className="text-red-400 bg-red-900/30 p-3 rounded-lg text-center">{error}</p>}
 
             <div>
@@ -249,10 +248,9 @@ export default function RegisterProductPage() {
             >
               {loading ? "Mendaftar..." : "Daftar Produk"}
             </button>
-                      </form>
-                    </div>
-                  </div>
-                </main>      <Footer />
+          </form>
+        </div>
+      </main>      <Footer />
       <MobileBottomNav />
     </div>
   );
