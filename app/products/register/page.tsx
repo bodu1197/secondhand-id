@@ -101,7 +101,7 @@ export default function RegisterProductPage() {
   };
 
   return (
-    <div className="bg-[#111827] min-h-screen text-gray-200">
+    <div className="bg-white min-h-screen text-gray-200">
       <Header />
       <main className="pt-20 pb-24">
         <div className="w-full bg-[#1f2937] py-8 rounded-lg shadow-lg">
