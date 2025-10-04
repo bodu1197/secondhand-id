@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { categories, locations } from "../../../filterData";
 import Header from '../../components/Header';
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
@@ -24,9 +24,46 @@ export default function RegisterProductPage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
 
   const supabase = createClientComponentClient();
   const router = useRouter();
+
+  useEffect(() => {
+    const fetchCoordinates = async () => {
+      if (selectedLocation && selectedRegency) {
+        const address = `${selectedRegency}, ${selectedLocation}, Indonesia`; // Assuming Indonesia context
+        // Replace with your actual geocoding API endpoint and API key
+        // Example for Google Geocoding API:
+        // const apiKey = 'YOUR_GOOGLE_GEOCODING_API_KEY';
+        // const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`);
+        
+        // Placeholder for a generic geocoding API
+        // YOU MUST REPLACE THIS URL AND HANDLE THE RESPONSE ACCORDING TO YOUR CHOSEN GEOCODING API
+        const response = await fetch(`https://api.example.com/geocode?address=${encodeURIComponent(address)}`); 
+        
+        const data = await response.json();
+
+        // Adjust this based on your geocoding API's response structure
+        // For Google Geocoding API, it would be data.results[0].geometry.location.lat and data.results[0].geometry.location.lng
+        if (data.results && data.results.length > 0) {
+          const { lat, lng } = data.results[0].geometry.location; // This line needs adjustment based on your API's response
+          setLatitude(lat);
+          setLongitude(lng);
+        } else {
+          console.error("Geocoding failed for address:", address);
+          setLatitude(null);
+          setLongitude(null);
+        }
+      } else {
+        setLatitude(null);
+        setLongitude(null);
+      }
+    };
+
+    fetchCoordinates();
+  }, [selectedLocation, selectedRegency]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -64,6 +101,13 @@ export default function RegisterProductPage() {
       return;
     }
 
+    // Validate latitude and longitude
+    if (latitude === null || longitude === null) {
+      setError("유효한 위치를 선택하여 좌표를 가져와야 합니다.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const imageUrls: string[] = [];
       for (const image of images) {
@@ -86,6 +130,8 @@ export default function RegisterProductPage() {
         category: selectedCategory,
         location: selectedLocation,
         images: imageUrls,
+        latitude,
+        longitude,
       });
 
       if (productError) throw productError;
