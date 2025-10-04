@@ -8,13 +8,14 @@ import { useRouter } from "next/navigation";
 import Footer from '../../components/Footer';
 import MobileBottomNav from '../../components/MobileBottomNav';
 import CustomSelect from '../../components/CustomSelect';
+import { UploadCloud } from 'lucide-react';
+import Image from "next/image";
 
 export default function RegisterProductPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [condition, setCondition] = useState("");
-  const [contactInfo, setContactInfo] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedSubcategory, setSelectedSubcategory] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
@@ -76,24 +77,21 @@ export default function RegisterProductPage() {
         imageUrls.push(data.path);
       }
 
-      const { error: productError } = await supabase.from('products').insert({
+      const { error: productError } = await supabase.from('listings').insert({
         user_id: user.id,
         title,
         description,
         price: parseFloat(price),
         condition,
-        category_main: selectedCategory,
-        category_sub: selectedSubcategory || null,
-        location_province: selectedLocation,
-        location_regency: selectedRegency || null,
-        contact_info: contactInfo || null,
+        category: selectedCategory,
+        location: selectedLocation,
         images: imageUrls,
       });
 
       if (productError) throw productError;
 
       alert("Produk berhasil didaftarkan!");
-      router.push("/"); // Redirect to home or product list page
+      router.push("/");
     } catch (err: any) {
       console.error("Error registering product:", err);
       setError(err.message || "Failed to register product.");
@@ -103,68 +101,68 @@ export default function RegisterProductPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="bg-[#111827] min-h-screen text-gray-200">
       <Header />
-      <main className="container mx-auto p-4 pt-16">
-        <h1 className="text-3xl font-bold text-center mb-8">Daftar Produk</h1>
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md max-w-2xl mx-auto">
-          {error && <p className="text-red-500 mb-4">{error}</p>}
+      <main className="container mx-auto p-4 pt-20 pb-24">
+        <div className="max-w-screen-xl mx-auto bg-[#1f2937] p-8 rounded-lg shadow-lg">
+          <h1 className="text-3xl font-bold text-center mb-8 text-white">Daftar Produk</h1>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && <p className="text-red-400 bg-red-900/30 p-3 rounded-lg text-center">{error}</p>}
 
-          <div className="mb-4">
-            <label htmlFor="title" className="block text-gray-700 text-sm font-bold mb-2">Nama Produk</label>
-            <input
-              type="text"
-              id="title"
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-            />
-          </div>
+            <div>
+              <label htmlFor="title" className="block text-gray-300 text-sm font-bold mb-2">Nama Produk</label>
+              <input
+                type="text"
+                id="title"
+                className="shadow appearance-none border border-gray-600 rounded w-full py-2 px-3 bg-gray-700 text-gray-200 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+              />
+            </div>
 
-          <div className="mb-4">
-            <label htmlFor="description" className="block text-gray-700 text-sm font-bold mb-2">Deskripsi Produk</label>
-            <textarea
-              id="description"
-              rows={5}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              required
-            ></textarea>
-          </div>
+            <div>
+              <label htmlFor="description" className="block text-gray-300 text-sm font-bold mb-2">Deskripsi Produk</label>
+              <textarea
+                id="description"
+                rows={5}
+                className="shadow appearance-none border border-gray-600 rounded w-full py-2 px-3 bg-gray-700 text-gray-200 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                required
+              ></textarea>
+            </div>
 
-          <div className="mb-4">
-            <label htmlFor="price" className="block text-gray-700 text-sm font-bold mb-2">Harga</label>
-            <input
-              type="number"
-              id="price"
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              required
-            />
-          </div>
+            <div>
+              <label htmlFor="price" className="block text-gray-300 text-sm font-bold mb-2">Harga</label>
+              <input
+                type="number"
+                id="price"
+                className="shadow appearance-none border border-gray-600 rounded w-full py-2 px-3 bg-gray-700 text-gray-200 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                required
+              />
+            </div>
 
-          <div className="mb-4">
-            <label htmlFor="condition" className="block text-gray-700 text-sm font-bold mb-2">Kondisi Produk</label>
-            <CustomSelect
-              value={condition}
-              onChange={(value) => setCondition(value)}
-              options={[
-                { value: "Baru", label: "Baru" },
-                { value: "Hampir Baru", label: "Hampir Baru" },
-                { value: "Bekas", label: "Bekas" },
-                { value: "Ada Cacat", label: "Ada Cacat" },
-              ]}
-              placeholder="Pilih"
-              required
-            />
-          </div>
+            <div>
+              <label htmlFor="condition" className="block text-gray-300 text-sm font-bold mb-2">Kondisi Produk</label>
+              <CustomSelect
+                value={condition}
+                onChange={(value) => setCondition(value)}
+                options={[
+                  { value: "Baru", label: "Baru" },
+                  { value: "Hampir Baru", label: "Hampir Baru" },
+                  { value: "Bekas", label: "Bekas" },
+                  { value: "Ada Cacat", label: "Ada Cacat" },
+                ]}
+                placeholder="Pilih Kondisi"
+                required
+              />
+            </div>
 
-          <div className="mb-4 flex flex-col sm:flex-row gap-4">
-            <div className="w-full sm:w-1/2">
-              <label htmlFor="category" className="block text-gray-700 text-sm font-bold mb-2">Kategori</label>
+            <div>
+              <label htmlFor="category" className="block text-gray-300 text-sm font-bold mb-2">Kategori</label>
               <CustomSelect
                 value={selectedCategory}
                 onChange={(value) => {
@@ -177,8 +175,8 @@ export default function RegisterProductPage() {
               />
             </div>
             {selectedCategory && (
-              <div className="w-full sm:w-1/2">
-                <label htmlFor="subcategory" className="block text-gray-700 text-sm font-bold mb-2">Sub Kategori</label>
+              <div>
+                <label htmlFor="subcategory" className="block text-gray-300 text-sm font-bold mb-2">Sub Kategori</label>
                 <CustomSelect
                   value={selectedSubcategory}
                   onChange={(value) => setSelectedSubcategory(value)}
@@ -189,11 +187,9 @@ export default function RegisterProductPage() {
                 />
               </div>
             )}
-          </div>
 
-          <div className="mb-4 flex flex-col sm:flex-row gap-4">
-            <div className="w-full sm:w-1/2">
-              <label htmlFor="location" className="block text-gray-700 text-sm font-bold mb-2">Wilayah Transaksi (Provinsi)</label>
+            <div>
+              <label htmlFor="location" className="block text-gray-300 text-sm font-bold mb-2">Wilayah (Provinsi)</label>
               <CustomSelect
                 value={selectedLocation}
                 onChange={(value) => {
@@ -206,8 +202,8 @@ export default function RegisterProductPage() {
               />
             </div>
             {selectedLocation && (
-              <div className="w-full sm:w-1/2">
-                <label htmlFor="regency" className="block text-gray-700 text-sm font-bold mb-2">Wilayah Transaksi (Kabupaten/Kota)</label>
+              <div>
+                <label htmlFor="regency" className="block text-gray-300 text-sm font-bold mb-2">Wilayah (Kabupaten/Kota)</label>
                 <CustomSelect
                   value={selectedRegency}
                   onChange={(value) => setSelectedRegency(value)}
@@ -216,64 +212,44 @@ export default function RegisterProductPage() {
                 />
               </div>
             )}
-          </div>
 
-          <div className="mb-4">
-            <label htmlFor="contactInfo" className="block text-gray-700 text-sm font-bold mb-2">Nomor WhatsApp (Opsional)</label>
-            <input
-              type="text"
-              id="contactInfo"
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              value={contactInfo}
-              onChange={(e) => setContactInfo(e.target.value)}
-              placeholder="Masukkan nomor WhatsApp Anda"
-              pattern="^\+?[0-9\s\-]{7,20}$" // Basic pattern for phone numbers
-              title="Contoh: +62 812-3456-7890" // Example format
-            />
-            <p className="text-gray-500 text-xs mt-1">Contoh: +62 812-3456-7890</p>
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">Gambar Produk (maks. 5)</label>
-            <input
-              type="file"
-              id="images"
-              accept="image/*"
-              multiple
-              onChange={handleImageChange}
-              className="hidden" // Hide the native file input
-            />
-            <label htmlFor="images" className="cursor-pointer bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded inline-flex items-center">
-              <svg className="fill-current w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M13 10V3L4 10H7L2 17H18L13 10Z"/></svg>
-              <span>Pilih File</span>
-            </label>
-            <span className="ml-3 text-gray-600 text-sm">
-              {images.length > 0 ? `${images.length} file(s) dipilih` : "Tidak ada file yang dipilih"}
-            </span>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {imagePreviews.map((preview, index) => (
-                <div key={index} className="relative w-24 h-24 border rounded overflow-hidden">
-                  <img src={preview} alt={`Product preview ${index + 1}`} className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveImage(index)}
-                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
-                  >
-                    X
-                  </button>
-                </div>
-              ))}
+            <div>
+              <label className="block text-gray-300 text-sm font-bold mb-2">Gambar Produk (maks. 5)</label>
+              <div className="mt-2 flex justify-center items-center w-full">
+                  <label htmlFor="images" className="flex flex-col items-center justify-center w-full h-48 border-2 border-gray-600 border-dashed rounded-lg cursor-pointer bg-gray-700/50 hover:bg-gray-700">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <UploadCloud className="w-10 h-10 mb-3 text-gray-400" />
+                          <p className="mb-2 text-sm text-gray-400"><span className="font-semibold">Klik untuk mengunggah</span> 또는 드래그 앤 드롭</p>
+                          <p className="text-xs text-gray-500">SVG, PNG, JPG or GIF (MAX. 5 images)</p>
+                      </div>
+                      <input id="images" type="file" className="hidden" accept="image/*" multiple onChange={handleImageChange} />
+                  </label>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {imagePreviews.map((preview, index) => (
+                  <div key={index} className="relative w-24 h-24 border-2 border-gray-600 rounded-lg overflow-hidden">
+                    <Image src={preview} alt={`Product preview ${index + 1}`} fill style={{objectFit: "cover"}} />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(index)}
+                      className="absolute top-0 right-0 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold"
+                    >
+                      X
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <button
-            type="submit"
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full"
-            disabled={loading}
-          >
-            {loading ? "Mendaftar..." : "Daftar Produk"}
-          </button>
-        </form>
+            <button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-300 disabled:bg-gray-500"
+              disabled={loading}
+            >
+              {loading ? "Mendaftar..." : "Daftar Produk"}
+            </button>
+          </form>
+        </div>
       </main>
       <Footer />
       <MobileBottomNav />
