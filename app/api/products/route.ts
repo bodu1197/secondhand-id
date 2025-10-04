@@ -14,7 +14,7 @@ export async function GET(request: Request) {
     const location = searchParams.get('location');
     const regency = searchParams.get('regency');
 
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 
     let productsQuery = supabase.from('listings').select(`
