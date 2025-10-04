@@ -104,7 +104,7 @@ export default function RegisterProductPage() {
     <div className="bg-[#111827] min-h-screen text-gray-200">
       <Header />
       <main className="pt-20 pb-24">
-        <div className="w-full bg-[#1f2937] py-8 rounded-lg shadow-lg">
+        <div className="w-full bg-[#111827] py-8 rounded-lg shadow-lg">
           <div className="max-w-screen-xl mx-auto px-6">
             <h1 className="text-3xl font-bold text-center mb-8 text-white">Daftar Produk</h1>
             <form onSubmit={handleSubmit} className="space-y-6">
