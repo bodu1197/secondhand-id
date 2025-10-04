@@ -7,11 +7,11 @@ import Footer from '../../components/Footer';
 import MobileBottomNav from '../../components/MobileBottomNav';
 
 interface ProductDetailPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
-  const { id } = params;
+  const { id } = await params;
   const cookieStore = await cookies();
   const supabase = createServerComponentClient({ cookies: () => cookieStore });
 
@@ -61,6 +61,8 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
                 src={`https://ulwwlniyoypmfhpjrvdn.supabase.co/storage/v1/object/public/listings-images/${product.images[0]}`}
                 alt={product.title}
                 fill
+                priority
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 800px"
                 style={{ objectFit: "cover" }}
                 className="rounded-lg"
               />
