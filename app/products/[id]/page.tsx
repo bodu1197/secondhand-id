@@ -11,7 +11,8 @@ interface ProductDetailPageProps {
 }
 
 export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
-  const cookieStore = cookies();
+  const { id } = params;
+  const cookieStore = await cookies();
   const supabase = createServerComponentClient({ cookies: () => cookieStore });
 
   const { data: product, error: productError } = await supabase
@@ -27,9 +28,10 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
       images,
       latitude,
       longitude,
-      user_id
+      user_id,
+      users(id, name)
     `)
-    .eq('id', params.id)
+    .eq('id', id)
     .single();
 
   if (productError || !product) {
