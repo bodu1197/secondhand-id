@@ -1,6 +1,6 @@
-import { getImageUrl } from '../utils/getImageUrl';
-
 "use client";
+
+import { getImageUrl } from '../utils/getImageUrl';
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
