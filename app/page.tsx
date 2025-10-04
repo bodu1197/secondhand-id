@@ -184,6 +184,7 @@ export default function Home() {
                         src={`https://ulwwlniyoypmfhpjrvdn.supabase.co/storage/v1/object/public/listings-images/${product.images[0]}`}
                         alt={product.title}
                         fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 800px"
                         style={{ objectFit: "cover" }}
                       />
                     ) : (
