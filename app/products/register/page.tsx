@@ -39,16 +39,15 @@ export default function RegisterProductPage() {
         // const apiKey = 'YOUR_GOOGLE_GEOCODING_API_KEY';
         // const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`);
         
-        // Placeholder for a generic geocoding API
-        // YOU MUST REPLACE THIS URL AND HANDLE THE RESPONSE ACCORDING TO YOUR CHOSEN GEOCODING API
-        const response = await fetch(`https://api.example.com/geocode?address=${encodeURIComponent(address)}`); 
+        // Use OpenStreetMap Nominatim API (no API key required for basic usage)
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`);
         
         const data = await response.json();
 
-        // Adjust this based on your geocoding API's response structure
-        // For Google Geocoding API, it would be data.results[0].geometry.location.lat and data.results[0].geometry.location.lng
-        if (data.results && data.results.length > 0) {
-          const { lat, lng } = data.results[0].geometry.location; // This line needs adjustment based on your API's response
+        // Nominatim's response structure: data[0].lat, data[0].lon
+        if (data && data.length > 0) {
+          const lat = parseFloat(data[0].lat);
+          const lng = parseFloat(data[0].lon);
           setLatitude(lat);
           setLongitude(lng);
         } else {
