@@ -57,7 +57,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
           <div className="relative w-full h-96 bg-gray-200 rounded-lg overflow-hidden mb-6">
             {product.images && product.images.length > 0 ? (
               <Image
-                src={`https://eiqskgzghfehpmlttyju.supabase.co/storage/v1/object/public/product-images/${product.images[0]}`}
+                src={`https://ulwwlniyoypmfhpjrvdn.supabase.co/storage/v1/object/public/listings-images/${product.images[0]}`}
                 alt={product.title}
                 fill
                 style={{ objectFit: "cover" }}
