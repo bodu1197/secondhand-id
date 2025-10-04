@@ -117,7 +117,7 @@ export default function RegisterProductPage() {
           .upload(fileName, image);
 
         if (uploadError) throw uploadError;
-        imageUrls.push(`ulwwlniyoypmfhpjrvdn.supabase.co/storage/v1/object/public/listings-images/${data.path}`);
+        imageUrls.push(`https://ulwwlniyoypmfhpjrvdn.supabase.co/storage/v1/object/public/listings-images/${data.path}`);
       }
 
       const { error: productError } = await supabase.from('listings').insert({
