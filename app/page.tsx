@@ -1,57 +1,211 @@
-import Image from 'next/image';
+"use client";
+import Image from "next/image";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { categories, locations } from "../filterData";
 import Header from './components/Header';
 import Link from 'next/link';
+import Footer from './components/Footer';
+import MobileBottomNav from './components/MobileBottomNav';
+import { Search as SearchIcon } from 'lucide-react';
+import CustomSelect from './components/CustomSelect';
 
 export default function Home() {
+  const [selectedLocation, setSelectedLocation] = useState("");
+  const [selectedRegency, setSelectedRegency] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedSubcategory, setSelectedSubcategory] = useState("");
+  const [searchQuery, setSearchQuery] = useState(""); // Added for mobile search
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      const query = new URLSearchParams();
+      if (searchQuery.trim()) {
+        query.set("q", searchQuery.trim());
+      }
+      if (selectedCategory) {
+        query.set("category", selectedCategory);
+      }
+      if (selectedSubcategory) {
+        query.set("subcategory", selectedSubcategory);
+      }
+      if (selectedLocation) {
+        query.set("location", selectedLocation);
+      }
+      if (selectedRegency) {
+        query.set("regency", selectedRegency);
+      }
+
+      const response = await fetch(`/api/products?${query.toString()}`);
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setProducts(data);
+      } else {
+        setProducts([]);
+      }
+      setLoading(false);
+    };
+
+    fetchProducts();
+  }, [searchQuery, selectedCategory, selectedSubcategory, selectedLocation, selectedRegency]);
+
+
+
+
+  
+    const handleReset = () => {
+      setSelectedCategory("");
+      setSelectedSubcategory("");
+      setSelectedLocation("");
+      setSelectedRegency("");
+      setSearchQuery(""); // Also clear mobile search query
+    };
   return (
-    <div className="bg-gray-50 text-gray-800">
+    <div className="bg-[#111827] text-gray-200">
       <Header />
       {/* Hero Section */}
-      <main className="flex flex-col items-center justify-center text-center py-20 px-6">
-        <h1 className="text-5xl font-extrabold text-gray-900 leading-tight">
-          세상을 연결하는 새로운 방법
-        </h1>
-        <p className="mt-4 text-xl text-gray-600 max-w-2xl">
-          저희 플랫폼과 함께라면, 당신의 아이디어가 현실이 됩니다. 지금 바로 시작하여 가능성을 탐험해보세요.
-        </p>
-        <Link href="/auth/register" className="mt-8 px-8 py-4 text-lg font-semibold text-white bg-blue-600 rounded-full hover:bg-blue-700 transition duration-300 transform hover:scale-105">
-          무료로 시작하기
-        </Link>
-      </main>
-
-      {/* Features Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center text-gray-800 mb-12">주요 기능</h2>
-          <div className="flex flex-wrap -mx-4">
-            <div className="w-full md:w-1/3 px-4 mb-8">
-              <div className="bg-gray-50 p-8 rounded-lg shadow-lg text-center">
-                <h3 className="text-xl font-bold mb-2">실시간 협업</h3>
-                <p className="text-gray-600">팀원들과 함께 문서를 실시간으로 편집하고 아이디어를 공유하세요.</p>
-              </div>
-            </div>
-            <div className="w-full md:w-1/3 px-4 mb-8">
-              <div className="bg-gray-50 p-8 rounded-lg shadow-lg text-center">
-                <h3 className="text-xl font-bold mb-2">강력한 보안</h3>
-                <p className="text-gray-600">당신의 데이터는 최신 암호화 기술로 안전하게 보호됩니다.</p>
-              </div>
-            </div>
-            <div className="w-full md:w-1/3 px-4 mb-8">
-              <div className="bg-gray-50 p-8 rounded-lg shadow-lg text-center">
-                <h3 className="text-xl font-bold mb-2">다양한 통합</h3>
-                <p className="text-gray-600">즐겨 사용하는 다른 서비스들과 손쉽게 연동하여 사용하세요.</p>
-              </div>
-            </div>
+      <main className="flex flex-col items-center justify-center text-center pt-16">
+        {/* Mobile Search Bar */}
+        <div className="mb-8 w-full max-w-md md:hidden relative px-6"> {/* Visible only on mobile, added relative for icon positioning */}
+          <input
+            type="text"
+            placeholder="Cari produk..."
+            className="w-full p-2 pr-10 rounded-lg border border-gray-700 bg-[#1f2937] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" // Added pr-10 for icon space
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleSearch();
+              }
+            }}
+          />
+          <SearchIcon className="absolute right-8 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /> {/* Magnifying glass icon */}
+        </div>
+      <div className="mb-8 w-full max-w-screen-xl mx-auto px-6 md:mt-8 md:flex md:items-center md:justify-between">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 w-full">
+          <div>
+            <CustomSelect
+              value={selectedCategory}
+              onChange={(value) => {
+                setSelectedCategory(value);
+                setSelectedSubcategory("");
+              }}
+              options={categories.map(cat => ({ value: cat.name, label: cat.name }))}
+              placeholder="Pilih Kategori"
+              className="w-full"
+            />
+          </div>
+          <div className="hidden md:block">
+            <CustomSelect
+              value={selectedSubcategory}
+              onChange={(value) => setSelectedSubcategory(value)}
+              options={selectedCategory && categories
+                .find((cat) => cat.name === selectedCategory)
+                ?.subcategories.map(subcat => ({ value: subcat, label: subcat })) || []}
+              placeholder="Pilih Sub Kategori"
+              className="w-full"
+              disabled={!selectedCategory}
+            />
+          </div>
+          <div>
+            <CustomSelect
+              value={selectedLocation}
+              onChange={(value) => {
+                setSelectedLocation(value);
+                setSelectedRegency("");
+              }}
+              options={Object.keys(locations).map(provinceName => ({ value: provinceName, label: provinceName }))}
+              placeholder="Pilih Provinsi"
+              className="w-full"
+            />
+          </div>
+          <div className="hidden md:block">
+            <CustomSelect
+              value={selectedRegency}
+              onChange={(value) => setSelectedRegency(value)}
+              options={selectedLocation && locations[selectedLocation]?.map(regency => ({ value: regency, label: regency })) || []}
+              placeholder="Pilih Kabupaten/Kota"
+              className="w-full"
+              disabled={!selectedLocation}
+            />
+          </div>
+          <div className="hidden md:flex space-x-2">
+            <button
+              onClick={handleReset}
+              className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline"
+            >
+              Reset
+            </button>
           </div>
         </div>
+        <div className="md:hidden mt-4 space-y-4">
+          {selectedCategory && (
+            <CustomSelect
+              value={selectedSubcategory}
+              onChange={(value) => setSelectedSubcategory(value)}
+              options={selectedCategory && categories
+                .find((cat) => cat.name === selectedCategory)
+                ?.subcategories.map(subcat => ({ value: subcat, label: subcat })) || []}
+              placeholder="Pilih Sub Kategori"
+              className="w-full"
+              disabled={!selectedCategory}
+            />
+          )}
+          {selectedLocation && (
+            <CustomSelect
+              value={selectedRegency}
+              onChange={(value) => setSelectedRegency(value)}
+              options={selectedLocation && locations[selectedLocation]?.map(regency => ({ value: regency, label: regency })) || []}
+              placeholder="Pilih Kabupaten/Kota"
+              className="w-full"
+              disabled={!selectedLocation}
+            />
+          )}
+        </div>
+      </div>
+      </main>
+
+      <section className="container mx-auto p-4 pb-16">
+        {loading ? (
+          <p className="text-center">Memuat produk...</p>
+        ) : products.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {products.map((product) => (
+              <Link href={`/products/${product.id}`} key={product.id}>
+                <div className="bg-[#1f2937] rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                  <div className="relative w-full h-48">
+                    {product.images && product.images.length > 0 ? (
+                      <Image
+                        src={`https://eiqskgzghfehpmlttyju.supabase.co/storage/v1/object/public/product-images/${product.images[0]}`}
+                        alt={product.title}
+                        fill
+                        style={{ objectFit: "cover" }}
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center w-full h-full text-gray-500">Tidak ada gambar</div>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <h2 className="text-lg font-semibold text-gray-100 truncate">{product.title}</h2>
+                    <p className="text-blue-400 font-bold mt-1">Rp {product.price.toLocaleString()}</p>
+                    <p className="text-gray-400 text-sm mt-2">{product.location_province}</p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="text-center">표시할 상품이 없습니다.</p>
+        )}
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white py-8">
-        <div className="container mx-auto px-6 text-center">
-          <p>&copy; 2025 Toko Monggo. All rights reserved.</p>
-        </div>
-      </footer>
+      <Footer />
+      <MobileBottomNav />
     </div>
   );
 }
