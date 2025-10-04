@@ -24,7 +24,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     .single();
 
   if (productError || !product) {
-    console.error("Error fetching product:", productError);
+    console.error("Error fetching product:", productError, JSON.stringify(productError));
     return <div className="min-h-screen flex items-center justify-center">Produk tidak ditemukan.</div>;
   }
 
