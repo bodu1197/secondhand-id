@@ -15,10 +15,19 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   const supabase = createServerComponentClient({ cookies: () => cookieStore });
 
   const { data: product, error: productError } = await supabase
-    .from('products')
+    .from('listings')
     .select(`
-      *,
-      users(nickname)
+      id,
+      title,
+      description,
+      price,
+      condition,
+      category,
+      location,
+      images,
+      latitude,
+      longitude,
+      user_id
     `)
     .eq('id', params.id)
     .single();
@@ -28,7 +37,14 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     return <div className="min-h-screen flex items-center justify-center">Produk tidak ditemukan.</div>;
   }
 
-  const sellerNickname = (product.users as { nickname: string })?.nickname || "알 수 없음";
+  // Fetch seller nickname separately
+  const { data: sellerProfile, error: sellerProfileError } = await supabase
+    .from('users')
+    .select('name')
+    .eq('id', product.user_id)
+    .single();
+
+  const sellerNickname = sellerProfile?.name || "Unknown Seller";
 
   return (
     <div className="min-h-screen bg-gray-100">

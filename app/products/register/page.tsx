@@ -94,6 +94,22 @@ export default function RegisterProductPage() {
       return;
     }
 
+    // Fetch the public user ID from the 'users' table
+    const { data: publicUser, error: publicUserError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('auth_id', user.id)
+      .single();
+
+    if (publicUserError || !publicUser) {
+      console.error("Error fetching public user ID:", publicUserError);
+      setError("Could not find public user profile. Please ensure your profile is set up.");
+      setLoading(false);
+      return;
+    }
+
+    const public_user_id = publicUser.id;
+
     if (!title || !description || !price || !condition || !selectedCategory || !selectedLocation || images.length === 0) {
       setError("Harap isi semua kolom yang wajib diisi dan unggah setidaknya satu gambar.");
       setLoading(false);
@@ -121,7 +137,7 @@ export default function RegisterProductPage() {
       }
 
       const { error: productError } = await supabase.from('listings').insert({
-        user_id: user.id,
+        user_id: public_user_id,
         title,
         description,
         price: parseFloat(price),
