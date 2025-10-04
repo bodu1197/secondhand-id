@@ -7,7 +7,9 @@ import { User } from '@supabase/supabase-js';
 import Link from 'next/link';
 import Header from '../../components/Header';
 import { Camera, Loader2 } from 'lucide-react';
-import RegionSelector from '../../components/RegionSelector'; // Import RegionSelector
+<<<<<<< HEAD
+ 
+>>>>>>> 8a8685e61326a63fdd74e93b3aec0cf4a90fb43f
 
 export default function EditMyProfilePage() {
   const supabase = createClientComponentClient();
@@ -18,15 +20,9 @@ export default function EditMyProfilePage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState('');
-  // State for region selection
-  const [selectedRegion, setSelectedRegion] = useState<{
-    provinceId: string;
-    provinceName: string;
-    regencyId: string;
-    regencyName: string;
-    lat: string;
-    lon: string;
-  } | null>(null);
+<<<<<<< HEAD
+  const [location, setLocation] = useState('');
+>>>>>>> 8a8685e61326a63fdd74e93b3aec0cf4a90fb43f
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -53,17 +49,9 @@ export default function EditMyProfilePage() {
 
         setProfile(existingProfile);
         setName(existingProfile.name);
-        // Initialize selectedRegion if profile has location data
-        if (existingProfile.location_regency_id && existingProfile.location_province_id) {
-          setSelectedRegion({
-            provinceId: existingProfile.location_province_id,
-            provinceName: existingProfile.location_province_name || '', // Assuming these fields exist or can be derived
-            regencyId: existingProfile.location_regency_id,
-            regencyName: existingProfile.location_regency_name || '',
-            lat: existingProfile.latitude || '',
-            lon: existingProfile.longitude || '',
-          });
-        }
+<<<<<<< HEAD
+        setLocation(existingProfile.location || '');
+>>>>>>> 8a8685e61326a63fdd74e93b3aec0cf4a90fb43f
         setAvatarUrl(existingProfile.avatar);
 
       } catch (err: any) {
@@ -85,10 +73,9 @@ export default function EditMyProfilePage() {
     }
   };
 
-  const handleRegionSelect = (data: typeof selectedRegion) => {
-    setSelectedRegion(data);
-  };
-
+<<<<<<< HEAD
+ 
+>>>>>>> 8a8685e61326a63fdd74e93b3aec0cf4a90fb43f
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -117,38 +104,11 @@ export default function EditMyProfilePage() {
         setUploadingAvatar(false);
       }
 
-      // Prepare update data for Supabase
-      const updateData: {
-        name: string;
-        location_province_id?: string | null;
-        location_province_name?: string | null;
-        location_regency_id?: string | null;
-        location_regency_name?: string | null;
-        latitude?: string | null;
-        longitude?: string | null;
-        avatar?: string | null;
-      } = { name, avatar: newAvatarPath };
-
-      if (selectedRegion) {
-        updateData.location_province_id = selectedRegion.provinceId;
-        updateData.location_province_name = selectedRegion.provinceName;
-        updateData.location_regency_id = selectedRegion.regencyId;
-        updateData.location_regency_name = selectedRegion.regencyName;
-        updateData.latitude = selectedRegion.lat;
-        updateData.longitude = selectedRegion.lon;
-      } else {
-        // If no region is selected, clear location data
-        updateData.location_province_id = null;
-        updateData.location_province_name = null;
-        updateData.location_regency_id = null;
-        updateData.location_regency_name = null;
-        updateData.latitude = null;
-        updateData.longitude = null;
-      }
-
+<<<<<<< HEAD
       const { error: updateError } = await supabase
         .from('users')
-        .update(updateData)
+        .update({ name, location, avatar: newAvatarPath })
+>>>>>>> 8a8685e61326a63fdd74e93b3aec0cf4a90fb43f
         .eq('auth_id', user?.id);
 
       if (updateError) throw updateError;
@@ -241,19 +201,18 @@ export default function EditMyProfilePage() {
                 />
               </div>
 
-              {/* Region Selector */}
+<<<<<<< HEAD
+              {/* Location Field */}
               <div>
-                <label className="block text-sm font-medium text-gray-700">지역 선택</label>
-                <RegionSelector
-                  onRegionSelect={handleRegionSelect}
-                  initialProvinceId={profile.location_province_id}
-                  initialRegencyId={profile.location_regency_id}
+                <label htmlFor="location" className="block text-sm font-medium text-gray-700">위치</label>
+                <input
+                  id="location"
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
                 />
-                {selectedRegion && (
-                  <div className="mt-2 text-sm text-gray-600">
-                    선택된 지역: {selectedRegion.provinceName}, {selectedRegion.regencyName} (Lat: {selectedRegion.lat}, Lon: {selectedRegion.lon})
-                  </div>
-                )}
+>>>>>>> 8a8685e61326a63fdd74e93b3aec0cf4a90fb43f
               </div>
 
               {/* Submit Button */}

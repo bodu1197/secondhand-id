@@ -41,20 +41,21 @@ export default function Header() {
           Toko Monggo
         </Link>
         <div className="space-x-4 flex items-center">
-          <Link href="/products/new" className="text-gray-600 hover:text-gray-900">
-            Sell
-          </Link>
+<<<<<<< HEAD
           {(session && session.user) ? ( // Check if session exists AND has a user
             <div className="flex items-center space-x-4">
               <Link href="/my-profile" className="text-gray-800 hover:opacity-80">
                 <UserRound className="w-6 h-6" />
               </Link>
               <button onClick={handleSignOut} className="text-gray-800 hover:opacity-80">
+>>>>>>> 8a8685e61326a63fdd74e93b3aec0cf4a90fb43f
                 <LogOut className="w-6 h-6" />
               </button>
             </div>
           ) : (
+<<<<<<< HEAD
             <Link href="/auth/login" className="text-gray-800 hover:opacity-80">
+>>>>>>> 8a8685e61326a63fdd74e93b3aec0cf4a90fb43f
               <UserRound className="w-6 h-6" />
             </Link>
           )}
